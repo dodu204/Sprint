@@ -56,7 +56,9 @@ class PerevalSerializer(WritableNestedModelSerializer):
     class Meta:
         model = Pereval
         fields = (
-            'id', 'beauty_title', 'title', 'other_titles', 'connect', 'add_time', 'user', 'coords', 'level', 'images')
+            'id', 'beauty_title', 'title', 'other_titles', 'connect', 'add_time', 'user', 'coords', 'level', 'images',
+            'status')
+        read_only_fields = ['status']
 
     def create(self, validated_data, **kwargs):
         user = validated_data.pop('user')
@@ -82,3 +84,18 @@ class PerevalSerializer(WritableNestedModelSerializer):
             Image.objects.create(data=data, pereval=pereval, title=title)
 
         return pereval
+
+    def validate(self, data):
+        if self.instance is not None:
+            instance_user = self.instance.user
+            data_user = data.get('user')
+            validating_user_fields = [
+                instance_user.fam != data_user['fam'],
+                instance_user.name != data_user['name'],
+                instance_user.otc != data_user['otc'],
+                instance_user.phone != data_user['phone'],
+                instance_user.email != data_user['email'],
+            ]
+            if data_user is not None and any(validating_user_fields):
+                raise serializers.ValidationError({'Данные пользователя не могут быть изменены'})
+        return data
